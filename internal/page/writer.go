@@ -1,4 +1,4 @@
-package pager
+package page
 
 type Writer struct {
 	freelist set[int64]

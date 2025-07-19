@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+
+	"github.com/gkits/pavosql/internal/pager"
 )
 
-type pager interface {
-	ReadPage(int64) ([PageSize]byte, error)
-	Alloc([PageSize]byte) (int64, error)
+type pageReadWriter interface {
+	ReadPage(int64) ([pager.PageSize]byte, error)
+	Alloc([pager.PageSize]byte) (int64, error)
 	Free(int64) error
 	Commit() error
 	Abort() error
@@ -16,7 +18,7 @@ type pager interface {
 
 type Tree struct {
 	root     int64
-	pager    pager
+	pager    pageReadWriter
 	readOnly bool
 }
 
@@ -25,24 +27,24 @@ func New() *Tree {
 }
 
 func (t *Tree) Get(k []byte) ([]byte, error) {
-	page, err := t.pager.ReadPage(t.root)
+	pg, err := t.pager.ReadPage(t.root)
 	if err != nil {
 		return nil, err
 	}
-	cur := node(page)
+	cur := node(pg)
 
 	for {
 		i, exists := cur.Search(k)
 
 		switch cur.Type() {
-		case PointerPage:
+		case pager.PointerPage:
 			ptr := cur.Pointer(i)
-			page, err = t.pager.ReadPage(ptr)
+			pg, err = t.pager.ReadPage(ptr)
 			if err != nil {
 				return nil, fmt.Errorf("tree: failed to read page: %w", err)
 			}
-			cur = node(page)
-		case LeafPage:
+			cur = node(pg)
+		case pager.LeafPage:
 			if !exists {
 				return nil, errors.New("key does not exists on leaf node")
 			}
@@ -57,28 +59,28 @@ func (t *Tree) Set(k []byte, v []byte) error {
 	if t.readOnly {
 		return errors.New("tree: cannot write onto read only tree")
 	}
-	page, err := t.pager.ReadPage(t.root)
+	pg, err := t.pager.ReadPage(t.root)
 	if err != nil {
 		return fmt.Errorf("tree: failed to read root page: %w", err)
 	}
-	cur := node(page)
+	cur := node(pg)
 
 	visited := []node{cur}
 	for {
 		i, exists := cur.Search(k)
 
 		switch cur.Type() {
-		case PointerPage:
+		case pager.PointerPage:
 			ptr := cur.Pointer(i)
-			page, err = t.pager.ReadPage(ptr)
+			pg, err = t.pager.ReadPage(ptr)
 			if err != nil {
 				return fmt.Errorf("tree: failed to read page: %w", err)
 			}
-			cur = node(page)
+			cur = node(pg)
 			visited = append(visited, cur)
 			continue
 
-		case LeafPage:
+		case pager.LeafPage:
 			if !exists {
 				return errors.New("key does not exists on leaf node")
 			}

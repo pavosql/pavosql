@@ -1,4 +1,4 @@
-package pager
+package page
 
 type Reader struct {
 	pages map[int64][]byte

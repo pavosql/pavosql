@@ -1,9 +1,18 @@
-package pager
+package page
 
 import (
 	"sync"
 
 	"github.com/gkits/pavosql/pkg/atomic"
+)
+
+const PageSize = 8192
+
+type PageType uint8
+
+const (
+	PointerPage PageType = iota + 1
+	LeafPage
 )
 
 type Pager struct {
