@@ -6,7 +6,7 @@ import (
 	"errors"
 	"iter"
 
-	"github.com/gkits/pavosql/internal/pager"
+	"github.com/gkits/pavosql/internal/page"
 )
 
 const (
@@ -55,18 +55,18 @@ The data stored in the cells is formatted as follows:
 	------------+--------+--------+--------+-------
 	Size in B   | 2      | 2      | KeyLen | ValLen
 */
-type node [pager.PageSize]byte
+type node [page.Size]byte
 
-func newNode(typ pager.PageType) node {
+func newNode(typ page.Type) node {
 	var n node
 	n[0] = byte(typ)
-	n.setWCursor(pager.PageSize)
+	n.setWCursor(page.Size)
 	return n
 }
 
 // Returns the type of n.
-func (n *node) Type() pager.PageType {
-	return pager.PageType(n[0])
+func (n *node) Type() page.Type {
+	return page.Type(n[0])
 }
 
 // Returns the number of cells currently stored on n.
@@ -195,11 +195,11 @@ func (n *node) Delete(i uint16) node {
 func (n *node) Split() (left node, right node) {
 	var addToRight bool
 	var i uint16
-	var wc uint16 = pager.PageSize
+	var wc uint16 = page.Size
 
 	left, right = newNode(n.Type()), newNode(n.Type())
 
-	thresh := (pager.PageSize - wc) / 2
+	thresh := (page.Size - wc) / 2
 
 	addToNode := func(addTo *node, i uint16, cell []byte, wCursor *uint16) {
 		*wCursor -= uint16(len(cell))
@@ -220,7 +220,7 @@ func (n *node) Split() (left node, right node) {
 		addToNode(&left, i, cell, &wc)
 		i++
 
-		if wc < pager.PageSize-thresh {
+		if wc < page.Size-thresh {
 			addToRight = true
 		}
 	}
@@ -233,7 +233,7 @@ func (n *node) Vacuum() node {
 	vacuumed[0] = byte(n.Type())
 	vacuumed.setN(n.N())
 
-	var wc uint16 = pager.PageSize
+	var wc uint16 = page.Size
 	var i uint16
 	for k, v := range n.All() {
 		cell := makeCell(k, v)

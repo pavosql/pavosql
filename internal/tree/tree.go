@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/gkits/pavosql/internal/pager"
+	"github.com/gkits/pavosql/internal/page"
 )
 
 type pageReadWriter interface {
-	ReadPage(int64) ([pager.PageSize]byte, error)
-	Alloc([pager.PageSize]byte) (int64, error)
+	ReadPage(int64) ([page.Size]byte, error)
+	Alloc([page.Size]byte) (int64, error)
 	Free(int64) error
 	Commit() error
 	Abort() error
@@ -37,14 +37,14 @@ func (t *Tree) Get(k []byte) ([]byte, error) {
 		i, exists := cur.Search(k)
 
 		switch cur.Type() {
-		case pager.PointerPage:
+		case page.Pointer:
 			ptr := cur.Pointer(i)
 			pg, err = t.pager.ReadPage(ptr)
 			if err != nil {
 				return nil, fmt.Errorf("tree: failed to read page: %w", err)
 			}
 			cur = node(pg)
-		case pager.LeafPage:
+		case page.Leaf:
 			if !exists {
 				return nil, errors.New("key does not exists on leaf node")
 			}
@@ -70,7 +70,7 @@ func (t *Tree) Set(k []byte, v []byte) error {
 		i, exists := cur.Search(k)
 
 		switch cur.Type() {
-		case pager.PointerPage:
+		case page.Pointer:
 			ptr := cur.Pointer(i)
 			pg, err = t.pager.ReadPage(ptr)
 			if err != nil {
@@ -80,7 +80,7 @@ func (t *Tree) Set(k []byte, v []byte) error {
 			visited = append(visited, cur)
 			continue
 
-		case pager.LeafPage:
+		case page.Leaf:
 			if !exists {
 				return errors.New("key does not exists on leaf node")
 			}
