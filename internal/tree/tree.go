@@ -36,7 +36,7 @@ func (t *Tree) Get(k []byte) ([]byte, error) {
 	for {
 		i, exists := cur.Search(k)
 
-		switch cur.Type() {
+		switch page.GetType(cur) {
 		case page.Pointer:
 			ptr := cur.Pointer(i)
 			pg, err = t.pager.ReadPage(ptr)
@@ -69,7 +69,7 @@ func (t *Tree) Set(k []byte, v []byte) error {
 	for {
 		i, exists := cur.Search(k)
 
-		switch cur.Type() {
+		switch page.GetType(cur) {
 		case page.Pointer:
 			ptr := cur.Pointer(i)
 			pg, err = t.pager.ReadPage(ptr)

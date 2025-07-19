@@ -6,15 +6,6 @@ import (
 	"github.com/gkits/pavosql/pkg/atomic"
 )
 
-const Size = 8192
-
-type Type uint8
-
-const (
-	Pointer Type = iota + 1
-	Leaf
-)
-
 type Pager struct {
 	rw       atomic.ReadWriterAt
 	freeList int64

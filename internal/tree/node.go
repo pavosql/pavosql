@@ -64,11 +64,6 @@ func newNode(typ page.Type) node {
 	return n
 }
 
-// Returns the type of n.
-func (n *node) Type() page.Type {
-	return page.Type(n[0])
-}
-
 // Returns the number of cells currently stored on n.
 func (n *node) N() uint16 {
 	return binary.LittleEndian.Uint16(n[nOff:])
@@ -197,7 +192,8 @@ func (n *node) Split() (left node, right node) {
 	var i uint16
 	var wc uint16 = page.Size
 
-	left, right = newNode(n.Type()), newNode(n.Type())
+	typ := page.GetType(*n)
+	left, right = newNode(typ), newNode(typ)
 
 	thresh := (page.Size - wc) / 2
 
@@ -230,7 +226,8 @@ func (n *node) Split() (left node, right node) {
 // Returns a resorted and reduced copy of n by freeing up space used by unreferenced cells.
 func (n *node) Vacuum() node {
 	var vacuumed node
-	vacuumed[0] = byte(n.Type())
+	typ := page.GetType(*n)
+	vacuumed[0] = byte(typ)
 	vacuumed.setN(n.N())
 
 	var wc uint16 = page.Size
