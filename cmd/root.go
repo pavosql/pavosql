@@ -12,9 +12,6 @@ var rootCmd = &cobra.Command{
 	Short:   "pavosql is a simple, lightweight and single file based relational database.",
 	Long:    `pavosql is a simple, lightweight and single file based relational database.`,
 	Version: version.Version(),
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
 }
 
 func Execute() {
@@ -26,4 +23,5 @@ func Execute() {
 
 func init() {
 	rootCmd.AddCommand(serveCmd)
+	rootCmd.AddCommand(openCmd)
 }
