@@ -8,26 +8,32 @@ import (
 	"github.com/gkits/pavosql/internal/page"
 )
 
-type pageReadWriter interface {
-	ReadPage(int64) ([page.Size]byte, error)
-	Alloc([page.Size]byte) (int64, error)
-	Free(int64) error
+type pageReader interface {
+	Read(off int64) ([page.Size]byte, error)
+}
+
+type pageWriter interface {
+	Alloc(d [page.Size]byte) int64
+	Free(off int64)
 	Commit() error
-	Abort() error
+	Abort()
+}
+
+type pageReadWriter interface {
+	pageReader
+	pageWriter
 }
 
 type Tree struct {
-	root     int64
-	pager    pageReadWriter
-	readOnly bool
+	root int64
 }
 
 func New() *Tree {
 	return &Tree{}
 }
 
-func (t *Tree) Get(k []byte) ([]byte, error) {
-	pg, err := t.pager.ReadPage(t.root)
+func (t *Tree) Get(r pageReader, k []byte) ([]byte, error) {
+	pg, err := r.Read(t.root)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +45,7 @@ func (t *Tree) Get(k []byte) ([]byte, error) {
 		switch page.GetType(cur) {
 		case page.Pointer:
 			ptr := cur.Pointer(i)
-			pg, err = t.pager.ReadPage(ptr)
+			pg, err = r.Read(ptr)
 			if err != nil {
 				return nil, fmt.Errorf("tree: failed to read page: %w", err)
 			}
@@ -55,11 +61,8 @@ func (t *Tree) Get(k []byte) ([]byte, error) {
 	}
 }
 
-func (t *Tree) Set(k []byte, v []byte) error {
-	if t.readOnly {
-		return errors.New("tree: cannot write onto read only tree")
-	}
-	pg, err := t.pager.ReadPage(t.root)
+func (t *Tree) Set(wr pageReadWriter, k []byte, v []byte) error {
+	pg, err := wr.Read(t.root)
 	if err != nil {
 		return fmt.Errorf("tree: failed to read root page: %w", err)
 	}
@@ -72,7 +75,7 @@ func (t *Tree) Set(k []byte, v []byte) error {
 		switch page.GetType(cur) {
 		case page.Pointer:
 			ptr := cur.Pointer(i)
-			pg, err = t.pager.ReadPage(ptr)
+			pg, err = wr.Read(ptr)
 			if err != nil {
 				return fmt.Errorf("tree: failed to read page: %w", err)
 			}
@@ -87,10 +90,7 @@ func (t *Tree) Set(k []byte, v []byte) error {
 
 			if cur.CanSet(k, v) {
 				newNode := cur.Set(i, k, v)
-				ptr, err := t.pager.Alloc(newNode)
-				if err != nil {
-					return fmt.Errorf("tree: failed to allocate page: %w", err)
-				}
+				ptr := wr.Alloc(newNode)
 				// TODO: pass ptr to parent node
 				_ = ptr
 				break
@@ -107,10 +107,7 @@ func (t *Tree) Set(k []byte, v []byte) error {
 	}
 
 	for _, n := range slices.Backward(visited) {
-		ptr, err := t.pager.Alloc(n)
-		if err != nil {
-			return err
-		}
+		ptr := wr.Alloc(n)
 		// TODO: pass ptr to parent nodes
 		_ = ptr
 	}
@@ -119,8 +116,5 @@ func (t *Tree) Set(k []byte, v []byte) error {
 }
 
 func (t *Tree) Delete(k []byte) error {
-	if t.readOnly {
-		return errors.New("tree: cannot write onto read only tree")
-	}
 	return nil
 }

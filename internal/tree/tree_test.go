@@ -1,15 +1,12 @@
-package tree_test
+package tree
 
-import (
-	"testing"
-
-	"github.com/gkits/pavosql/internal/tree"
-)
+import "testing"
 
 func TestTree_Get(t *testing.T) {
 	tests := []struct {
 		name string // description of this test case
 		// Named input parameters for target function.
+		r       pageReader
 		k       []byte
 		want    []byte
 		wantErr bool
@@ -18,8 +15,8 @@ func TestTree_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tr := tree.New()
-			got, gotErr := tr.Get(tt.k)
+			tr := New()
+			got, gotErr := tr.Get(tt.r, tt.k)
 			if gotErr != nil {
 				if !tt.wantErr {
 					t.Errorf("Get() failed: %v", gotErr)
@@ -41,6 +38,7 @@ func TestTree_Set(t *testing.T) {
 	tests := []struct {
 		name string // description of this test case
 		// Named input parameters for target function.
+		wr      pageReadWriter
 		k       []byte
 		v       []byte
 		wantErr bool
@@ -49,8 +47,8 @@ func TestTree_Set(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tr := tree.New()
-			gotErr := tr.Set(tt.k, tt.v)
+			tr := New()
+			gotErr := tr.Set(tt.wr, tt.k, tt.v)
 			if gotErr != nil {
 				if !tt.wantErr {
 					t.Errorf("Set() failed: %v", gotErr)
@@ -75,7 +73,7 @@ func TestTree_Delete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tr := tree.New()
+			tr := New()
 			gotErr := tr.Delete(tt.k)
 			if gotErr != nil {
 				if !tt.wantErr {
