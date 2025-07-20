@@ -23,7 +23,7 @@ SOFTWARE.
 */
 package main
 
-import "github.com/gkits/pavosql/cmd/pavosql/cmd"
+import "github.com/gkits/pavosql/cmd"
 
 func main() {
 	cmd.Execute()
