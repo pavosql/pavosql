@@ -3,7 +3,7 @@ package page
 type Writer struct {
 	freelist set[int64]
 	freed    set[int64]
-	new      map[int64][Size]byte
+	new      map[int64][]byte
 	nextPage int64
 	pageSize int64
 	commit   commitFn
@@ -16,14 +16,14 @@ func newWriter(r *Reader, freelist set[int64], nextPage int64, commitCallback co
 
 		freelist: freelist,
 		freed:    make(set[int64]),
-		new:      make(map[int64][Size]byte),
+		new:      make(map[int64][]byte),
 
 		commit:   commitCallback,
 		nextPage: nextPage,
 	}
 }
 
-func (w *Writer) Alloc(d [Size]byte) int64 {
+func (w *Writer) Alloc(d []byte) int64 {
 	off := w.nextPage
 	switch {
 	case len(w.freed) > 0:

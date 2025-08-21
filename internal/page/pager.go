@@ -14,8 +14,8 @@ type Pager struct {
 }
 
 type (
-	readFn   = func(int64) ([Size]byte, error)
-	commitFn = func(map[int64][Size]byte) error
+	readFn   = func(int64) ([]byte, error)
+	commitFn = func(map[int64][]byte) error
 
 	set[T comparable] = map[T]struct{}
 )
@@ -38,15 +38,15 @@ func (p *Pager) NewWriter() (*Writer, error) {
 	return writer, nil
 }
 
-func (p *Pager) read(off int64) ([Size]byte, error) {
-	page := [Size]byte{}
+func (p *Pager) read(off int64) ([]byte, error) {
+	page := []byte{}
 	if _, err := p.rw.ReadAt(page[:], int64(off)); err != nil {
 		return page, err
 	}
 	return page, nil
 }
 
-func (p *Pager) commit(changes map[int64][Size]byte) error {
+func (p *Pager) commit(changes map[int64][]byte) error {
 	for off, d := range changes {
 		if _, err := p.rw.WriteAt(d[:], off); err != nil {
 			return err
